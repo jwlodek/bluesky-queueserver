@@ -404,8 +404,9 @@ def _serialize_msg_component(value):
     ``run``) to a JSON-serializable representation. Enum members are represented by their
     value, non-finite floats are made JSON-safe, numpy scalars/arrays are converted to
     native Python types, devices and other objects with a ``name`` attribute are
-    represented by their name, containers are serialized recursively, and anything else
-    (e.g. bytes, datetimes) falls back to ``str()`` (or ``None`` on failure).
+    represented by their ``repr()`` (which includes the type, making it nicer to read),
+    containers are serialized recursively, and anything else (e.g. bytes, datetimes)
+    falls back to ``str()`` (or ``None`` on failure).
     """
     if value is None:
         return value
@@ -424,7 +425,7 @@ def _serialize_msg_component(value):
             return _serialize_msg_component(value.tolist())
     name = getattr(value, "name", None)
     if isinstance(name, str):
-        return name
+        return repr(value)
     if isinstance(value, (list, tuple, set)):
         return [_serialize_msg_component(v) for v in value]
     if isinstance(value, dict):

@@ -479,6 +479,9 @@ class _MockDevice:
     def __init__(self, name):
         self.name = name
 
+    def __repr__(self):
+        return f"{type(self).__name__}(name={self.name!r})"
+
 
 def test_MsgHookStreamManager_basic():
     """
@@ -494,7 +497,7 @@ def test_MsgHookStreamManager_basic():
     assert len(payloads) == 1
     p = payloads[0]
     assert p["command"] == "set"
-    assert p["obj"] == "motor1"
+    assert p["obj"] == "_MockDevice(name='motor1')"
     assert p["args"] == [5]
     assert p["kwargs"] == {"group": "A"}
     assert p["run"] is None
@@ -503,7 +506,7 @@ def test_MsgHookStreamManager_basic():
 
 def test_MsgHookStreamManager_serializes_nonjson():
     """
-    Non-JSON-safe components are coerced to strings (or names for devices).
+    Non-JSON-safe components are coerced to strings (or reprs for devices).
     """
     mq = _MockQueue()
     mhsm = MsgHookStreamManager(msg_queue=mq)
@@ -514,10 +517,10 @@ def test_MsgHookStreamManager_serializes_nonjson():
 
     p = _get_message_payloads(mq)[0]
     assert p["command"] == "read"
-    assert p["obj"] == "det"
-    assert p["args"][0] == "m2"
+    assert p["obj"] == "_MockDevice(name='det')"
+    assert p["args"][0] == "_MockDevice(name='m2')"
     assert isinstance(p["args"][1], str)  # arbitrary object coerced to str
-    assert p["kwargs"] == {"k": "m3"}
+    assert p["kwargs"] == {"k": "_MockDevice(name='m3')"}
 
 
 def test_serialize_msg_component_enum():
@@ -638,7 +641,11 @@ def test_MsgHookStreamManager_sim_motor_move():
     # The 'set' and 'wait' messages share the same auto-generated group id.
     group = payloads_no_time[0]["kwargs"]["group"]
 
+    # The device is serialized via repr(), which includes its type and name.
+    obj_repr = payloads_no_time[0]["obj"]
+    assert isinstance(obj_repr, str) and "motor" in obj_repr
+
     assert payloads_no_time == [
-        {"command": "set", "obj": "motor", "args": [1], "kwargs": {"group": group}, "run": None},
+        {"command": "set", "obj": obj_repr, "args": [1], "kwargs": {"group": group}, "run": None},
         {"command": "wait", "obj": None, "args": [], "kwargs": {"group": group, "timeout": None}, "run": None},
     ]
